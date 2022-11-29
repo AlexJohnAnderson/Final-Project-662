@@ -19,12 +19,14 @@ data T = Num  Int
          | Minus T T
          | Mult T T
          | Div T T
+         | Lambda (Id:TY) in T
+         | App T T
+         | Bind Id T T 
+         | If T T T
          | And T T
          | Or T T
          | Leq T T
          | IsZero T 
-         | If T T T
-         | Bind Id T T 
            deriving (Show,Eq)
 
 type Env = [(String,TERMLANG)]
