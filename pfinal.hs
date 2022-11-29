@@ -29,5 +29,5 @@ data T = Num  Int
          | IsZero T 
            deriving (Show,Eq)
 
-type Env = [(String,TERMLANG)]
-type Cont = [(String,TYPELANG)]
+type Env = [(String,T)]
+type Cont = [(String,T)]
