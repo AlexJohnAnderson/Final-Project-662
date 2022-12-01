@@ -1,11 +1,10 @@
 {-# LANGUAGE GADTs,FlexibleContexts #-}
 
 -- Imports for Monads
-
 import Control.Monad
 
--- AST and Type Definitions
 
+-- AST and Type Definitions
 data TY where
   TNum :: TY
   TBool :: TY
@@ -37,16 +36,12 @@ data TVal where
   ClosureV :: String -> T -> Env -> TVal
   deriving (Show,Eq)
 
-
 type Env = [(String,TVal)]
 type Cont = [(String,TY)]
 
 
-
 --SUBSTITUTE FUNCTION
 --IDK IF WE NEED THIS???
-
-
 subst :: String -> T -> T -> T
 subst i v (Num x) = (Num x)
 subst i v (Boolean b) = (Boolean b)
@@ -109,3 +104,52 @@ typeof c (IsZero t) = do { TNum <- typeof c t;
                            return TBool }
 typeof c (Fix f) = do { (d :->: r) <- (typeof c f);
                         return r }
+
+
+--EVALUATION
+eval :: Env -> T -> (Maybe TVal)
+eval e (Num x) = if x < 0 then (Nothing) else (Just (NumV x))
+eval e (Boolean b) = Just (BooleanV b)
+eval e (Id i) = (lookup i e)
+eval e (Plus l r) = do { (NumV l') <- (eval e l);
+                         (NumV r') <- (eval e r);
+                         return (NumV (l' + r')) }
+eval e (Minus l r) = do { (NumV l') <- (eval e l);
+                          (NumV r') <- (eval e r);
+                          if (l' < r') then (Nothing) else (return (NumV (l' - r'))) }
+eval e (Mult l r) = do { (NumV l') <- (eval e l);
+                         (NumV r') <- (eval e r);
+                         return (NumV (l' * r')) }
+eval e (Div l r) = do { (NumV l') <- (eval e l);
+                        (NumV r') <- (eval e r);
+                        if (r' == 0) then (Nothing) else (return (NumV (l' `div` r'))) }
+eval e (Lambda i t b) = Just (ClosureV i b e)
+eval e (App f a) = do { (ClosureV i b e') <- (eval e f);
+                        a' <- (eval e a);
+                        (eval ((i,a'):e') b) }
+eval e (Bind i v b) = do { v' <- (eval e v);
+                           eval ((i,v'):e) b }
+eval e (If c t e') = do { (BooleanV c') <- (eval e c);
+                         if c' then (eval e t) else (eval e e') }
+eval e (And x y) = do { (BooleanV x') <- (eval e x);
+                        (BooleanV y') <- (eval e y);
+                        return (BooleanV (x' && y')) }
+eval e (Or x y) = do { (BooleanV x') <- (eval e x);
+                       (BooleanV y') <- (eval e y);
+                       return (BooleanV (x' || y')) }
+eval e (Leq l r) = do { (NumV l') <- (eval e l);
+                        (NumV r') <- (eval e r);
+                        return (BooleanV (l' <= r')) }
+eval e (IsZero t) = do { (NumV t') <- (eval e t);
+                         return (BooleanV (t' == 0)) }
+eval e (Fix f) = do { (ClosureV i b e') <- (eval e f);
+                      t <- Just TNum;
+                      (eval e' (subst i (Fix (Lambda i t b)) b)) }
+
+
+--INTERPRETER
+
+interp :: T -> (Maybe TVal)
+interp a = let env = [] in
+           do { typeof env a;
+                eval env a; }
