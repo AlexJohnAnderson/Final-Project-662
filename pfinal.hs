@@ -3,12 +3,13 @@
 -- Imports for Monads
 import Control.Monad
 
-
+type List a = Int -> a
 -- AST and Type Definitions
 data TY where
   TNum :: TY
   TBool :: TY
   (:->:) :: TY -> TY -> TY
+  TList :: TY -> TY 
   deriving (Show,Eq)
 
 data T where
@@ -28,11 +29,13 @@ data T where
   Leq :: T -> T -> T
   IsZero :: T -> T
   Fix :: T -> T
+  Cons :: T -> T -> T -> T
   deriving (Show,Eq)
 
 data TVal where
   NumV :: Int -> TVal
   BooleanV :: Bool -> TVal
+  ListV :: Maybe TVal -> TVal
   ClosureV :: String -> T -> Env -> TVal
   deriving (Show,Eq)
 
@@ -104,6 +107,7 @@ typeof c (IsZero t) = do { TNum <- typeof c t;
                            return TBool }
 typeof c (Fix f) = do { (d :->: r) <- (typeof c f);
                         return r }
+typeof c (Cons x xs n) = return TNum
 
 
 --EVALUATION
@@ -145,7 +149,10 @@ eval e (IsZero t) = do { (NumV t') <- (eval e t);
 eval e (Fix f) = do { (ClosureV i b e') <- (eval e f);
                       t <- Just TNum;
                       (eval e' (subst i (Fix (Lambda i t b)) b)) }
-
+eval e (Cons x xs n) = do{ListV x'<-(eval e x);
+                          ListV xs'<-(eval e xs);
+                          NumV n'<-(eval e n);
+                          if n' == 0 then x' else xs'}
 
 --INTERPRETER
 
@@ -153,3 +160,17 @@ interp :: T -> (Maybe TVal)
 interp a = let env = [] in
            do { typeof env a;
                 eval env a; }
+
+
+-- Simulate infinite lists as functions from Integer
+type ListX a = Int -> a
+
+cons :: Int -> ListX Int -> ListX Int
+cons x xs n | n == 0    = x
+            | otherwise = xs (n-1)
+
+tailF :: ListX a -> ListX a
+tailF xs n = xs (n+1)
+
+fib :: ListX Int
+fib = 1 `cons` (1 `cons` (\n -> fib n + tailF fib n))
