@@ -46,7 +46,6 @@ type Cont = [(String,TY)]
 
 
 --SUBSTITUTE FUNCTION
---IDK IF WE NEED THIS???
 subst :: String -> T -> T -> T
 subst i v (Num x) = (Num x)
 subst i v (Boolean b) = (Boolean b)
@@ -167,7 +166,6 @@ eval e (Cons x xs n) = do{ListV x'<-(eval e x);
 --                      return tail(xs')}
 
 --INTERPRETER
-
 interp :: T -> (Maybe TVal)
 interp a = let env = [] in
            do { typeof env a;
