@@ -9,7 +9,6 @@ data TY where
   TNum :: TY
   TBool :: TY
   (:->:) :: TY -> TY -> TY
-  TList :: TY -> TY 
   deriving (Show,Eq)
 
 data T where
@@ -30,6 +29,9 @@ data T where
   IsZero :: T -> T
   Fix :: T -> T
   Cons :: T -> T -> T -> T
+  Initialize :: T -> T -> T
+  Head :: T -> T
+  Tail :: T -> T
   deriving (Show,Eq)
 
 data TVal where
@@ -107,7 +109,10 @@ typeof c (IsZero t) = do { TNum <- typeof c t;
                            return TBool }
 typeof c (Fix f) = do { (d :->: r) <- (typeof c f);
                         return r }
+typeof c (Initialize n x) = return TNum
 typeof c (Cons x xs n) = return TNum
+typeof c (Head xs) = return TNum
+typeof c (Tail xs) = return TNum
 
 
 --EVALUATION
@@ -149,10 +154,17 @@ eval e (IsZero t) = do { (NumV t') <- (eval e t);
 eval e (Fix f) = do { (ClosureV i b e') <- (eval e f);
                       t <- Just TNum;
                       (eval e' (subst i (Fix (Lambda i t b)) b)) }
+eval e (Initialize n xs) = do{ListV xs'<-(eval e xs);
+                              NumV n'<-(eval e n);
+                              if n' == 0 then Nothing else xs'}
 eval e (Cons x xs n) = do{ListV x'<-(eval e x);
                           ListV xs'<-(eval e xs);
                           NumV n'<-(eval e n);
                           if n' == 0 then x' else xs'}
+--eval e (Head xs) = do{ListV xs'<-(eval e xs);
+--                      return head(xs')}
+--eval e (Tail xs) = do{ListV xs'<-(eval e xs);
+--                      return tail(xs')}
 
 --INTERPRETER
 
@@ -172,5 +184,5 @@ cons x xs n | n == 0    = x
 tailF :: ListX a -> ListX a
 tailF xs n = xs (n+1)
 
-fib :: ListX Int
-fib = 1 `cons` (1 `cons` (\n -> fib n + tailF fib n))
+headF :: ListX a -> ListX a
+headF xs n = xs(n-(n-1))
